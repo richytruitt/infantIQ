@@ -1,0 +1,13 @@
+{
+    "Parameters": {
+        "CodeCommitSHA": "$CodeCommitSHA$",
+        "S3Bucket": "$S3Bucket$",
+        "Region": "us-east-1",
+        "AccountId": "211125369622"
+    }
+}
+
+
+
+
+

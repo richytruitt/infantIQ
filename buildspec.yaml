@@ -1,0 +1,38 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+        nodejs: 18
+  pre_build:
+    commands:
+    - COMMIT_ID=`echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7`
+  build:
+    commands:
+      - echo "$S3_BUCKET"
+      - echo "$(pwd) $(ls)"
+
+      # Get JWT API:
+      - cd features/iot_core_to_dynamodb
+      - mkdir package
+      - pip3 install --target ./package -r requirements.txt
+      - cd package
+      - zip -r ../iot_core_to_dynamodb-${COMMIT_ID}.zip .
+      - cd ..
+      - zip iot_core_to_dynamodb-${COMMIT_ID}.zip main.py
+      - cd ../../
+      - aws s3 cp features/iot_core_to_dynamodb/iot_core_to_dynamodb-${COMMIT_ID}.zip s3://${S3_BUCKET}/release/
+
+      
+  post_build:
+    commands:
+    # set the CodeCommitSHA for each enviornment
+    - sed -i.bak 's/\$CodeCommitSHA\$/'${COMMIT_ID}'/g' ci/params.json
+
+    # set the S3 bucket for each enviornment
+    - sed -i.bak 's/\$S3Bucket\$/'${S3_BUCKET}'/g' ci/params.json
+
+artifacts:
+  files:
+    - ci/params.json
+
+

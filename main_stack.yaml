@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+
+Parameters:
+  S3Bucket:
+    Type: String
+  CodeCommitSHA:
+    Type: String
+    Description: The version of the docker image to release
+  Region:
+    Type: String
+    Description: AWS Region
+  AccountId:
+    Type: String
+    Description: AWS Account ID
+
+
+Resources:
+
+ 
+  APIEndpointsStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/api_endpoints.yaml"
+      Parameters:
+        S3Bucket:
+          Ref: S3Bucket
+        CodeCommitSHA:
+          Ref: CodeCommitSHA
+
+
+
+
+
+
+
+

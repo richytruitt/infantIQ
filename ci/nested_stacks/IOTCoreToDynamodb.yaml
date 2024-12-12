@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+
+
+Parameters:
+  S3Bucket:
+    Type: String
+  CodeCommitSHA:
+    Type: String
+    Description: iot core to dynamodb lambda
+
+
+Resources:
+  IOTCoreToDynamodbRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        -
+          PolicyName: "IOTCoreToDynamodbPolicy"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - "timestream:*"
+              - "iot:*"
+              - "sns:ListTopics"
+              - "sns:publish"
+              - "dynamodb:Scan"
+              - "dynamodb:UpdateItem"
+              - "dynamodb:Query"
+              - "kms:DescribeKey"
+              - "kms:CreateGrant"
+              - "kms:Decrypt"
+              - "dbqms:CreateFavoriteQuery"
+              - "dbqms:DescribeFavoriteQueries"
+              - "dbqms:UpdateFavoriteQuery"
+              - "dbqms:DeleteFavoriteQueries"
+              - "dbqms:GetQueryString"
+              - "dbqms:CreateQueryHistory"
+              - "dbqms:UpdateQueryHistory"
+              - "dbqms:DeleteQueryHistory"
+              - "dbqms:DescribeQueryHistory"
+              - "s3:ListAllMyBuckets"
+              Resource: "*"
+  IOTCoreToDynamodbLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code:
+        S3Bucket: !Ref 'S3Bucket'
+        S3Key: !Join
+          - ''
+          - - 'release/'
+            - 'iot_core_to_dynamodb'
+            - '-'
+            - !Ref 'CodeCommitSHA'  
+            - '.zip'
+      Description: Lambda for Lift Aggregator Notifier
+      FunctionName: IOTCoreToDynamodbFunction
+      Handler: "main.lambda_handler"
+      MemorySize: 128
+      Role: !GetAtt IOTCoreToDynamodbRole.Arn
+      Runtime: "python3.9"
+      Timeout: 100
+ 
+  # LiftAggregatorNotifierScheduleRole:
+  #   Type: AWS::IAM::Role
+  #   Properties:
+  #     AssumeRolePolicyDocument:
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: Allow
+  #           Principal:
+  #             Service:
+  #               - scheduler.amazonaws.com
+  #           Action:
+  #             - sts:AssumeRole
+  #     Policies:
+  #       - PolicyName: LiftAggregatorNotifierSchedulePolicy
+  #         PolicyDocument:
+  #           Version: "2012-10-17"
+  #           Statement:
+  #             - Effect: Allow
+  #               Action:
+  #                 - "sts:AssumeRole"
+  #                 - "lambda:InvokeFunction"
+  #               Resource: !GetAtt LiftAggregatorNotifierLambda.Arn
+ 
+  # LiftAggregatorNotifierScheduler:
+  #   Type: AWS::Scheduler::Schedule
+  #   Properties:
+  #     FlexibleTimeWindow:
+  #       Mode: "OFF"
+  #     Description: Scheduled Lift Aggregator Notifier service
+  #     Name: LiftAggregatorNotifierSchedule
+  #     ScheduleExpression: "rate(30 minutes)"
+  #     State: "ENABLED"
+  #     Target:
+  #       Arn: !GetAtt LiftAggregatorNotifierLambda.Arn
+  #       RoleArn: !GetAtt LiftAggregatorNotifierScheduleRole.Arn
+

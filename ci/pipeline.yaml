@@ -1,0 +1,315 @@
+# This is the infrastructure for the service build pipeline
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  # The stack name for the actual application the pipeline will deploy
+  ApplicationStackName:
+    Type: String
+    Default: haloInsightsStack
+    AllowedPattern: "[A-Za-z0-9-]+"
+  
+Resources:
+
+  PipelineArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  # Uses Github App to pull latest changes from github
+  GithubConnection:
+    # On first run, you'll need to open up the pipeline in the console and complete configuration
+    Type: 'AWS::CodeStarConnections::Connection'
+    Properties:
+      ConnectionName: infant-iq
+      ProviderType: GitHub
+  
+  # An S3 bucket is needed to store the lambda zip file
+  S3ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+          Action: sts:AssumeRole
+  
+  CodeBuildPolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyDocument:
+        Statement:
+          - Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            - s3:*
+            - codebuild:CreateReportGroup
+            - codebuild:CreateReport
+            - codebuild:UpdateReport
+            - codebuild:BatchPutTestCases
+            - codebuild:BatchPutCodeCoverages
+            - codebuild:StartBuild
+            - codebuild:StopBuild
+            - codebuild:RetryBuild
+            Resource: "*"
+            Effect: Allow
+      PolicyName: CodePipelineServiceRolePolicy
+      Roles: 
+        - !Ref CodeBuildRole
+
+  # Codebuild is used for creating a ZIP package of our lambda source code
+  # Note - you will need to submit an AWS ticket asking for limit increases for new regions/accounts
+  CodeBuild:
+    Type: AWS::CodeBuild::Project
+    DependsOn: [S3ArtifactBucket]
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-environment.html#cfn-codebuild-project-environment-image
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          # These are passed into and usable in the buildspec.yaml file
+          - Name: S3_BUCKET
+            Value: !Ref S3ArtifactBucket
+        Image: aws/codebuild/standard:7.0
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+      Name: infantiq-build
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        # Code src is received through codepipeline input
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 5
+
+  # Codepipeline is used for orchestrating the deployment of our application stack via CF
+  CodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref PipelineArtifactsBucket
+      RestartExecutionOnUpdate: true
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+      # Source stage - get latest code from github
+      - Name: Source
+        # https://docs.aws.amazon.com/codepipeline/latest/userguide/action-reference-CodestarConnectionSource.html
+        Actions:
+        - Name: Source
+          InputArtifacts: []
+          ActionTypeId:
+            Category: Source
+            Owner: AWS
+            Version: 1
+            Provider: CodeStarSourceConnection
+          OutputArtifacts:
+          - Name: SourceCode
+          Configuration:
+          # https://docs.aws.amazon.com/codepipeline/latest/userguide/action-reference-CodestarConnectionSource.html
+            ConnectionArn: !Ref GithubConnection
+            FullRepositoryId: richytruitt/infantIQ
+            BranchName: main
+            OutputArtifactFormat: "CODE_ZIP"
+          RunOrder: 1
+      # Build stage - create lambda deployable zip with codebuild, generate cf template env vars
+      - Name: Build
+        Actions:
+        - Name: build-from-source
+          InputArtifacts:
+          - Name: SourceCode
+          OutputArtifacts:
+          - Name: BuildArtifact
+          ActionTypeId:
+            Category: Build
+            Owner: AWS
+            Version: "1"
+            Provider: CodeBuild
+          Configuration:
+            ProjectName: !Ref CodeBuild
+          RunOrder: 1
+      # Deploy stage - generate CF stack using out inputs from previous stages
+      - Name: Deploy
+        Actions:
+        - Name: CloudFormationDeploy
+          ActionTypeId:
+            Category: Deploy
+            Owner: AWS
+            Provider: CloudFormation
+            Version: '1'
+          InputArtifacts:
+            - Name: BuildArtifact
+            - Name: SourceCode
+          Configuration:
+            ActionMode: CREATE_UPDATE
+            Capabilities: CAPABILITY_IAM,CAPABILITY_AUTO_EXPAND
+            RoleArn: !GetAtt CloudformationRole.Arn
+            StackName: !Ref ApplicationStackName
+            TemplatePath: !Sub "SourceCode::main_stack.yaml"
+            TemplateConfiguration: !Sub "BuildArtifact::ci/params.json"
+          RunOrder: 1
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codepipeline.amazonaws.com
+          Action: sts:AssumeRole
+  
+  CodePipelineServiceRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties: 
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+            - iam:PassRole
+            Resource: "*"
+            Effect: Allow
+            Condition:
+              StringEqualsIfExists:
+                iam:PassedToService:
+                - cloudformation.amazonaws.com
+                - elasticbeanstalk.amazonaws.com
+                - ec2.amazonaws.com
+                - ecs-tasks.amazonaws.com
+          - Action:
+            - codecommit:CancelUploadArchive
+            - codecommit:GetBranch
+            - codecommit:GetCommit
+            - codecommit:GetRepository
+            - codecommit:GetUploadArchiveStatus
+            - codecommit:UploadArchive
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codedeploy:CreateDeployment
+            - codedeploy:GetApplication
+            - codedeploy:GetApplicationRevision
+            - codedeploy:GetDeployment
+            - codedeploy:GetDeploymentConfig
+            - codedeploy:RegisterApplicationRevision
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codestar-connections:UseConnection
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - elasticbeanstalk:*
+            - ec2:*
+            - elasticloadbalancing:*
+            - autoscaling:*
+            - cloudwatch:*
+            - s3:*
+            - sns:*
+            - cloudformation:*
+            - rds:*
+            - sqs:*
+            - ecs:*
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - lambda:InvokeFunction
+            - lambda:ListFunctions
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - opsworks:CreateDeployment
+            - opsworks:DescribeApps
+            - opsworks:DescribeCommands
+            - opsworks:DescribeDeployments
+            - opsworks:DescribeInstances
+            - opsworks:DescribeStacks
+            - opsworks:UpdateApp
+            - opsworks:UpdateStack
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStacks
+            - cloudformation:UpdateStack
+            - cloudformation:CreateChangeSet
+            - cloudformation:DeleteChangeSet
+            - cloudformation:DescribeChangeSet
+            - cloudformation:ExecuteChangeSet
+            - cloudformation:SetStackPolicy
+            - cloudformation:ValidateTemplate
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codebuild:BatchGetBuilds
+            - codebuild:StartBuild
+            - codebuild:BatchGetBuildBatches
+            - codebuild:StartBuildBatch
+            Resource: "*"
+            Effect: Allow
+          - Effect: Allow
+            Action:
+            - devicefarm:ListProjects
+            - devicefarm:ListDevicePools
+            - devicefarm:GetRun
+            - devicefarm:GetUpload
+            - devicefarm:CreateUpload
+            - devicefarm:ScheduleRun
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - servicecatalog:ListProvisioningArtifacts
+            - servicecatalog:CreateProvisioningArtifact
+            - servicecatalog:DescribeProvisioningArtifact
+            - servicecatalog:DeleteProvisioningArtifact
+            - servicecatalog:UpdateProduct
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - cloudformation:ValidateTemplate
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - ecr:DescribeImages
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - states:DescribeExecution
+            - states:DescribeStateMachine
+            - states:StartExecution
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - appconfig:StartDeployment
+            - appconfig:StopDeployment
+            - appconfig:GetDeployment
+            Resource: "*"
+      PolicyName: CodePipelineServiceRolePolicy
+      Roles: 
+        - !Ref CodePipelineRole
+
+  CloudformationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+

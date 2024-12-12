@@ -84,7 +84,7 @@ Resources:
         Actions:
           - Lambda:
               FunctionArn:
-                Fn::GetATT:
+                Fn::GetAtt:
                   - IOTCoreToDynamodbLambda
                   - Arn
         AwsIotSqlVersion: '2016-03-23'

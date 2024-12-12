@@ -55,7 +55,6 @@ Resources:
               - "dbqms:DeleteQueryHistory"
               - "dbqms:DescribeQueryHistory"
               - "s3:ListAllMyBuckets"
-              - "s3: *"
               Resource: "*"
   IOTCoreToDynamodbLambda:
     Type: "AWS::Lambda::Function"

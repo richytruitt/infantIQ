@@ -17,11 +17,11 @@ Parameters:
 
 Resources:
  
-  IOTCoreToDynamodbStack:
+  DataIngestionStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL:
-        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/IOTCoreToDynamodb.yaml"
+        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/data_ingestion.yaml"
       Parameters:
         S3Bucket:
           Ref: S3Bucket

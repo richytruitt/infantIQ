@@ -56,7 +56,7 @@ Resources:
               - "dbqms:DescribeQueryHistory"
               - "s3:ListAllMyBuckets"
               Resource: "*"
-  IOTCoreToDynamodbLambda:
+  IOTCoreToDynamodbLambda:  
     Type: "AWS::Lambda::Function"
     Properties:
       Code:
@@ -68,14 +68,28 @@ Resources:
             - '-'
             - !Ref 'CodeCommitSHA'  
             - '.zip'
-      Description: Lambda for Lift Aggregator Notifier
+      Description: Lambda for transferring sensor data from Iot Core to DynamoDB
       FunctionName: IOTCoreToDynamodbFunction
       Handler: "main.lambda_handler"
       MemorySize: 128
       Role: !GetAtt IOTCoreToDynamodbRole.Arn
       Runtime: "python3.9"
       Timeout: 100
- 
+
+  IOTCoreToDynamodbRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: route_to_lambda
+      TopicRulePayload:
+        Actions:
+          - Lambda:
+              FunctionArn:
+                Fn::GetATT:
+                  - IOTCoreToDynamodbLambda
+                  - Arn
+        AwsIotSqlVersion: '2016-03-23'
+        Description: Get All
+        Sql: SELECT * FROM 'infantiq/actions'
   # LiftAggregatorNotifierScheduleRole:
   #   Type: AWS::IAM::Role
   #   Properties:

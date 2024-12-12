@@ -5,7 +5,7 @@ Parameters:
   # The stack name for the actual application the pipeline will deploy
   ApplicationStackName:
     Type: String
-    Default: haloInsightsStack
+    Default: infantIqStack
     AllowedPattern: "[A-Za-z0-9-]+"
   
 Resources:

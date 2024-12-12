@@ -45,13 +45,20 @@ def connect_internet():
         print(e)
 
 
-def publish_mpu_values():
-    value = random.randint(1,10)
+def generate_new_reading():
+
+    button_options = ["diaper_change", "feeding", "nap"]
+    selected_value = random.choice(button_options)
+
+    
     payload = {
-        "point_number": random.randint(1,100),
-        "value": str(value)
+        "deviceID": MQTT_CLIENT_ID, 
+        "timestamp": time.time(),
+        "action": selected_value
     }
-    mqtt_client.publish('random/value', json.dumps(payload))
+    
+    
+    mqtt_client.publish('infantiq/actions', json.dumps(payload))
     
 def flash_led(times, led):
     for i in range(times):
@@ -76,13 +83,9 @@ mqtt_client = MQTTClient(
     ssl=context
 )
 
-print(f"Connecting to MQTT broker")
-
 mqtt_client.connect()
 
-print("Done Connecting, sending Values")
 while True:
-    publish_mpu_values()
-    print("Publishing Values")
-    time.sleep(5)
+    generate_new_reading()
+    time.sleep(30)
     

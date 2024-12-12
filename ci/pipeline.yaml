@@ -1,8 +1,6 @@
-# This is the infrastructure for the service build pipeline
 AWSTemplateFormatVersion: '2010-09-09'
 
 Parameters:
-  # The stack name for the actual application the pipeline will deploy
   ApplicationStackName:
     Type: String
     Default: infantIqStack
@@ -16,15 +14,12 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
 
-  # Uses Github App to pull latest changes from github
   GithubConnection:
-    # On first run, you'll need to open up the pipeline in the console and complete configuration
     Type: 'AWS::CodeStarConnections::Connection'
     Properties:
       ConnectionName: infant-iq
       ProviderType: GitHub
   
-  # An S3 bucket is needed to store the lambda zip file
   S3ArtifactBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Delete
@@ -67,8 +62,6 @@ Resources:
       Roles: 
         - !Ref CodeBuildRole
 
-  # Codebuild is used for creating a ZIP package of our lambda source code
-  # Note - you will need to submit an AWS ticket asking for limit increases for new regions/accounts
   CodeBuild:
     Type: AWS::CodeBuild::Project
     DependsOn: [S3ArtifactBucket]
@@ -76,10 +69,8 @@ Resources:
       Artifacts:
         Type: CODEPIPELINE
       Environment:
-      # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-codebuild-project-environment.html#cfn-codebuild-project-environment-image
         ComputeType: BUILD_GENERAL1_SMALL
         EnvironmentVariables:
-          # These are passed into and usable in the buildspec.yaml file
           - Name: S3_BUCKET
             Value: !Ref S3ArtifactBucket
         Image: aws/codebuild/standard:7.0
@@ -88,11 +79,9 @@ Resources:
       Name: infantiq-build
       ServiceRole: !Ref CodeBuildRole
       Source:
-        # Code src is received through codepipeline input
         Type: CODEPIPELINE
       TimeoutInMinutes: 5
 
-  # Codepipeline is used for orchestrating the deployment of our application stack via CF
   CodePipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:

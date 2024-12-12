@@ -11,7 +11,7 @@ phases:
       - echo "$S3_BUCKET"
       - echo "$(pwd) $(ls)"
 
-      # Get JWT API:
+      # Iot Core to DynamoDB lambda function:
       - cd features/iot_core_to_dynamodb
       - mkdir package
       - pip3 install --target ./package -r requirements.txt
@@ -28,10 +28,7 @@ phases:
 
   post_build:
     commands:
-    # set the CodeCommitSHA for each enviornment
     - sed -i.bak 's/\$CodeCommitSHA\$/'${COMMIT_ID}'/g' ci/params.json
-
-    # set the S3 bucket for each enviornment
     - sed -i.bak 's/\$S3Bucket\$/'${S3_BUCKET}'/g' ci/params.json
 
 artifacts:

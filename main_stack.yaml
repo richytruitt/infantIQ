@@ -16,13 +16,12 @@ Parameters:
 
 
 Resources:
-
  
-  APIEndpointsStack:
+  IOTCoreToDynamodbStack:
     Type: "AWS::CloudFormation::Stack"
     Properties:
       TemplateURL:
-        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/api_endpoints.yaml"
+        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/IOTCoreToDynamodb.yaml"
       Parameters:
         S3Bucket:
           Ref: S3Bucket

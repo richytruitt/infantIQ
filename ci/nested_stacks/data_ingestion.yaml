@@ -42,6 +42,7 @@ Resources:
               - "dynamodb:Scan"
               - "dynamodb:UpdateItem"
               - "dynamodb:Query"
+              - "dynamodb:PutItem"
               - "kms:DescribeKey"
               - "kms:CreateGrant"
               - "kms:Decrypt"

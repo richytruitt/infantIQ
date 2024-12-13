@@ -90,33 +90,6 @@ Resources:
         AwsIotSqlVersion: '2016-03-23'
         Description: Get All
         Sql: SELECT * FROM 'infantiq/actions'
- 
-   LiftsDBTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      TableName: lifts
-      AttributeDefinitions:
-        -
-          AttributeName: "deviceID"
-          AttributeType: "S"
-        -
-          AttributeName: "StartTime"
-          AttributeType: "S"
-
-
-
-
-      KeySchema:
-        -
-          AttributeName: "deviceID"
-          KeyType: "HASH"
-        -
-          AttributeName: "StartTime"
-          KeyType: "RANGE"
-     
-      ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
 
   ActionsDBTable:
     Type: AWS::DynamoDB::Table

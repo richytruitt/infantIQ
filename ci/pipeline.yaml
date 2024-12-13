@@ -17,7 +17,7 @@ Resources:
   GithubConnection:
     Type: 'AWS::CodeStarConnections::Connection'
     Properties:
-      ConnectionName: infant-iq
+      ConnectionName: infantiq
       ProviderType: GitHub
   
   S3ArtifactBucket:

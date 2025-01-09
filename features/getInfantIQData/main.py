@@ -14,11 +14,11 @@ class DecimalEncoder(json.JSONEncoder):
 
 def lambda_handler(event, context):
     session = boto3.session.Session()
+   
+    resource = session.resource('dynamodb')
+    table = resource.Table('actions')
 
-    ddb_client = session.client('dynamodb')
-    response = ddb_client.query(
-        TableName='actions'
-    )
+    response = table.scan()
 
     print(f"Response Object: {response}")
     

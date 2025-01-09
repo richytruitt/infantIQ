@@ -2,6 +2,8 @@
 import json
 from decimal import Decimal
 
+import boto3
+
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -11,13 +13,22 @@ class DecimalEncoder(json.JSONEncoder):
 
 
 def lambda_handler(event, context):
-    print("#######################WARM START CODE STARTED #####################")
+    session = boto3.session.Session()
+
+    ddb_client = session.client('dynamodb')
+    response = ddb_client.query(
+        TableName='actions'
+    )
+
+    print(f"Response Object: {response}")
     
+
+
     responseObject = {}
     responseBody = {}
 
     responseObject["statusCode"] = 200
-    responseBody["token"] = {
+    responseBody["data"] = {
         "Name": "Richy",
         "LastName": "Truitt"
     }

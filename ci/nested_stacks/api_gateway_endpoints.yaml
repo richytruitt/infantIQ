@@ -13,12 +13,12 @@ Parameters:
 Resources:
 
 
-  JWTSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: JWTSecret
-      Description: Simple secret created by AWS CloudFormation.
-      SecretString: '{"secret_key":"secretKey"}'
+  # JWTSecret:
+  #   Type: AWS::SecretsManager::Secret
+  #   Properties:
+  #     Name: JWTSecret
+  #     Description: Simple secret created by AWS CloudFormation.
+  #     SecretString: '{"secret_key":"secretKey"}'
  
   # ========== Base API Gateway ==========
   APIGateway:

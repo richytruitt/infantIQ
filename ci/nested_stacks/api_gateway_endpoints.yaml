@@ -143,6 +143,7 @@ Resources:
                   - iot:*
                   - dynamodb:Query
                   - dynamodb:UpdateItem
+                  - dynamodb:Scan
                   - kms:DescribeKey
                   - kms:CreateGrant
                   - kms:Decrypt

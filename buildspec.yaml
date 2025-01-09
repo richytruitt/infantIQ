@@ -22,6 +22,17 @@ phases:
       - cd ../../
       - aws s3 cp features/iot_core_to_dynamodb/iot_core_to_dynamodb-${COMMIT_ID}.zip s3://${S3_BUCKET}/release/
 
+      # Lambda function for API to get all data:
+      - cd features/getInfantIQData
+      - mkdir package
+      - pip3 install --target ./package -r requirements.txt
+      - cd package
+      - zip -r ../getInfantIQData-${COMMIT_ID}.zip .
+      - cd ..
+      - zip getInfantIQData-${COMMIT_ID}.zip main.py
+      - cd ../../
+      - aws s3 cp features/getInfantIQData/getInfantIQData-${COMMIT_ID}.zip s3://${S3_BUCKET}/release/
+
       
       - aws s3 sync ci/nested_stacks s3://${S3_BUCKET}/nested_stacks/${COMMIT_ID}/
 

@@ -28,6 +28,17 @@ Resources:
         CodeCommitSHA:
           Ref: CodeCommitSHA
 
+  InfantIQAPIStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL:
+        Fn::Sub: "https://s3.amazonaws.com/${S3Bucket}/nested_stacks/${CodeCommitSHA}/api_gateway_endpoints.yaml"
+      Parameters:
+        S3Bucket:
+          Ref: S3Bucket
+        CodeCommitSHA:
+          Ref: CodeCommitSHA
+
 
 
 

@@ -30,10 +30,7 @@ def lambda_handler(event, context):
     responseBody = {}
 
     responseObject["statusCode"] = 200
-    responseBody["data"] = {
-        "Name": "Richy",
-        "LastName": "Truitt"
-    }
+    responseBody["data"] = response
 
     responseObject["headers"] = {}
     responseObject["headers"]["Content-Type"] = "application/json"

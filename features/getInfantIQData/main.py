@@ -21,6 +21,8 @@ def lambda_handler(event, context):
     response = table.scan()
 
     print(f"Response Object: {response}")
+    print(f"=================")
+    print(f"Length of response: {len(response)}")
     
 
 

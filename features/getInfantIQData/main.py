@@ -20,17 +20,12 @@ def lambda_handler(event, context):
 
     response = table.scan()
 
-    print(f"Response Object: {response}")
-    print(f"=================")
-    print(f"Length of response: {len(response)}")
     
-
-
     responseObject = {}
     responseBody = {}
 
     responseObject["statusCode"] = 200
-    responseBody["data"] = response
+    responseBody["data"] = response["Items"]
 
     responseObject["headers"] = {}
     responseObject["headers"]["Content-Type"] = "application/json"

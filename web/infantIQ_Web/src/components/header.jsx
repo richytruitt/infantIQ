@@ -11,8 +11,8 @@ function Header(props){
     return(
         <div>
             <h2>InfantIQ Data</h2>
-            {(user)?<h3>Hello {user}</h3>:null}
-            <button onClick={updateUser}>Click to set user</button>
+            {/* {(user)?<h3>Hello {user}</h3>:null}
+            <button onClick={updateUser}>Click to set user</button> */}
         </div>
     );
 }
